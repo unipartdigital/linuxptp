@@ -1,6 +1,6 @@
 /**
  * @file ptp4l.c
- * @brief PTP Boundary Clock main program
+ * @brief PTP Boundary Clock or Transparent Clock main program
  * @note Copyright (C) 2011 Richard Cochran <richardcochran@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -61,6 +61,7 @@ static void usage(char *progname)
 		" -p [dev]  PTP hardware clock device to use, default auto\n"
 		"           (ignored for SOFTWARE/LEGACY HW time stamping)\n"
 		" -s        slave only mode (overrides configuration file)\n"
+		" -t        transparent clock\n"
 		" -l [num]  set the logging level to 'num'\n"
 		" -m        print messages to stdout\n"
 		" -q        do not print messages to the syslog\n"
@@ -73,6 +74,7 @@ static void usage(char *progname)
 int main(int argc, char *argv[])
 {
 	char *config = NULL, *req_phc = NULL, *progname;
+	enum clock_type type = CLOCK_TYPE_ORDINARY;
 	int c, err = -1, index, print_level;
 	struct clock *clock = NULL;
 	struct option *opts;
@@ -90,7 +92,7 @@ int main(int argc, char *argv[])
 	/* Process the command line arguments. */
 	progname = strrchr(argv[0], '/');
 	progname = progname ? 1+progname : argv[0];
-	while (EOF != (c = getopt_long(argc, argv, "AEP246HSLf:i:p:sl:mqvh",
+	while (EOF != (c = getopt_long(argc, argv, "AEP246HSLf:i:p:stl:mqvh",
 				       opts, &index))) {
 		switch (c) {
 		case 0:
@@ -151,6 +153,9 @@ int main(int argc, char *argv[])
 				goto out;
 			}
 			break;
+		case 't':
+			type = CLOCK_TYPE_E2E;
+			break;
 		case 'l':
 			if (get_arg_val_i(c, optarg, &print_level,
 					  PRINT_LEVEL_MIN, PRINT_LEVEL_MAX))
@@ -203,8 +208,34 @@ int main(int argc, char *argv[])
 		goto out;
 	}
 
-	clock = clock_create(cfg->n_interfaces > 1 ? CLOCK_TYPE_BOUNDARY :
-			     CLOCK_TYPE_ORDINARY, cfg, req_phc);
+	switch (type) {
+	case CLOCK_TYPE_ORDINARY:
+	case CLOCK_TYPE_BOUNDARY:
+		if (cfg->n_interfaces > 1) {
+			type = CLOCK_TYPE_BOUNDARY;
+		}
+		break;
+	case CLOCK_TYPE_P2P:
+	case CLOCK_TYPE_E2E:
+		if (cfg->n_interfaces < 2) {
+			fprintf(stderr, "TC needs at least two interfaces\n");
+			goto out;
+		}
+		switch (config_get_int(cfg, NULL, "delay_mechanism")) {
+		case DM_AUTO:
+		case DM_E2E:
+			type = CLOCK_TYPE_E2E;
+			break;
+		case DM_P2P:
+			type = CLOCK_TYPE_P2P;
+			break;
+		}
+		break;
+	case CLOCK_TYPE_MANAGEMENT:
+		goto out;
+	}
+
+	clock = clock_create(type, cfg, req_phc);
 	if (!clock) {
 		fprintf(stderr, "failed to create a clock\n");
 		goto out;
