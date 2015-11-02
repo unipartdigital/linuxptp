@@ -32,6 +32,7 @@
 #include "msg.h"
 #include "phc.h"
 #include "port.h"
+#include "port_private.h"
 #include "print.h"
 #include "rtnl.h"
 #include "sk.h"
@@ -43,12 +44,6 @@
 #define ALLOWED_LOST_RESPONSES 3
 #define ANNOUNCE_SPAN 1
 
-enum syfu_state {
-	SF_EMPTY,
-	SF_HAVE_SYNC,
-	SF_HAVE_FUP,
-};
-
 enum syfu_event {
 	SYNC_MISMATCH,
 	SYNC_MATCH,
@@ -56,86 +51,7 @@ enum syfu_event {
 	FUP_MATCH,
 };
 
-struct nrate_estimator {
-	double ratio;
-	tmv_t origin1;
-	tmv_t ingress1;
-	unsigned int max_count;
-	unsigned int count;
-	int ratio_valid;
-};
-
-struct port {
-	LIST_ENTRY(port) list;
-	char *name;
-	struct clock *clock;
-	struct transport *trp;
-	enum timestamp_type timestamping;
-	struct fdarray fda;
-	int fault_fd;
-	int phc_index;
-
-	void (*dispatch)(struct port *p, enum fsm_event event, int mdiff);
-	enum fsm_event (*event)(struct port *p, int fd_index);
-
-	int jbod;
-	struct foreign_clock *best;
-	enum syfu_state syfu;
-	struct ptp_message *last_syncfup;
-	struct ptp_message *delay_req;
-	struct ptp_message *peer_delay_req;
-	struct ptp_message *peer_delay_resp;
-	struct ptp_message *peer_delay_fup;
-	int peer_portid_valid;
-	struct PortIdentity peer_portid;
-	struct {
-		UInteger16 announce;
-		UInteger16 delayreq;
-		UInteger16 sync;
-	} seqnum;
-	tmv_t peer_delay;
-	struct tsproc *tsproc;
-	int log_sync_interval;
-	struct nrate_estimator nrate;
-	unsigned int pdr_missing;
-	unsigned int multiple_seq_pdr_count;
-	unsigned int multiple_pdr_detected;
-	enum port_state (*state_machine)(enum port_state state,
-					 enum fsm_event event, int mdiff);
-	/* portDS */
-	struct PortIdentity portIdentity;
-	enum port_state     state; /*portState*/
-	Integer64           asymmetry;
-	int                 asCapable;
-	Integer8            logMinDelayReqInterval;
-	TimeInterval        peerMeanPathDelay;
-	Integer8            logAnnounceInterval;
-	UInteger8           announceReceiptTimeout;
-	int                 announce_span;
-	UInteger8           syncReceiptTimeout;
-	UInteger8           transportSpecific;
-	Integer8            logSyncInterval;
-	Enumeration8        delayMechanism;
-	Integer8            logMinPdelayReqInterval;
-	UInteger32          neighborPropDelayThresh;
-	int                 follow_up_info;
-	int                 freq_est_interval;
-	int                 hybrid_e2e;
-	int                 min_neighbor_prop_delay;
-	int                 path_trace_enabled;
-	int                 rx_timestamp_offset;
-	int                 tx_timestamp_offset;
-	int                 link_status;
-	struct fault_interval flt_interval_pertype[FT_CNT];
-	enum fault_type     last_fault_type;
-	unsigned int        versionNumber; /*UInteger4*/
-	/* foreignMasterDS */
-	LIST_HEAD(fm, foreign_clock) foreign_masters;
-};
-
 #define portnum(p) (p->portIdentity.portNumber)
-
-#define NSEC2SEC 1000000000LL
 
 static int port_capable(struct port *p);
 static int port_is_ieee8021as(struct port *p);
