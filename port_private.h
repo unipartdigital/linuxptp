@@ -43,6 +43,13 @@ struct nrate_estimator {
 	int ratio_valid;
 };
 
+struct tc_txd {
+	TAILQ_ENTRY(tc_txd) list;
+	struct ptp_message *msg;
+	tmv_t residence;
+	int ingress_port;
+};
+
 struct port {
 	LIST_ENTRY(port) list;
 	char *name;
@@ -109,6 +116,8 @@ struct port {
 	unsigned int        versionNumber; /*UInteger4*/
 	/* foreignMasterDS */
 	LIST_HEAD(fm, foreign_clock) foreign_masters;
+	/* TC book keeping */
+	TAILQ_HEAD(tct, tc_txd) tc_transmitted;
 };
 
 #define portnum(p) (p->portIdentity.portNumber)
