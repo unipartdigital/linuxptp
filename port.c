@@ -2504,6 +2504,9 @@ struct port *port_open(int phc_index,
 		p->event = bc_event;
 		break;
 	case CLOCK_TYPE_P2P:
+		p->dispatch = p2p_dispatch;
+		p->event = p2p_event;
+		break;
 	case CLOCK_TYPE_E2E:
 	case CLOCK_TYPE_MANAGEMENT:
 		return NULL;

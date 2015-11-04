@@ -122,6 +122,9 @@ struct port {
 
 #define portnum(p) (p->portIdentity.portNumber)
 
+void p2p_dispatch(struct port *p, enum fsm_event event, int mdiff);
+enum fsm_event p2p_event(struct port *p, int fd_index);
+
 int clear_fault_asap(struct fault_interval *faint);
 int port_clr_tmo(int fd);
 int port_delay_request(struct port *p);
