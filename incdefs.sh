@@ -40,6 +40,17 @@ user_flags()
 		done
 	done
 
+	# Look for struct timehires.
+	for d in $dirs; do
+		files=$(find $d -type f -name time.h -o -name timex.h)
+		for f in $files; do
+			if grep -q timehires $f; then
+				printf " -DHAVE_TIMEHIRES"
+				break 2
+			fi
+		done
+	done
+
 	# Look for posix_spawn().
 	for d in $dirs; do
 		files=$(find $d -type f -name spawn.h)
