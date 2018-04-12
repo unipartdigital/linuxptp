@@ -60,6 +60,7 @@ static void usage(char *progname)
 		"           (ignored for SOFTWARE/LEGACY HW time stamping)\n"
 		" -s        slave only mode (overrides configuration file)\n"
 		" -t        transparent clock\n"
+		" -N        disable high resolution timestamps\n"
 		" -l [num]  set the logging level to 'num'\n"
 		" -m        print messages to stdout\n"
 		" -q        do not print messages to the syslog\n"
@@ -90,7 +91,7 @@ int main(int argc, char *argv[])
 	/* Process the command line arguments. */
 	progname = strrchr(argv[0], '/');
 	progname = progname ? 1+progname : argv[0];
-	while (EOF != (c = getopt_long(argc, argv, "AEP246HSLf:i:p:sl:mqvh",
+	while (EOF != (c = getopt_long(argc, argv, "AEP246HSLNf:i:p:sl:mqvh",
 				       opts, &index))) {
 		switch (c) {
 		case 0:
@@ -134,6 +135,10 @@ int main(int argc, char *argv[])
 			break;
 		case 'L':
 			if (config_set_int(cfg, "time_stamping", TS_LEGACY_HW))
+				goto out;
+			break;
+		case 'N':
+			if (config_set_int(cfg, "disable_hires_timestamps", 1))
 				goto out;
 			break;
 		case 'f':
@@ -191,6 +196,7 @@ int main(int argc, char *argv[])
 	assume_two_step = config_get_int(cfg, NULL, "assume_two_step");
 	sk_check_fupsync = config_get_int(cfg, NULL, "check_fup_sync");
 	sk_tx_timeout = config_get_int(cfg, NULL, "tx_timestamp_timeout");
+	sk_no_hires = config_get_int(cfg, NULL, "disable_hires_timestamps");
 
 	if (config_get_int(cfg, NULL, "clock_servo") == CLOCK_SERVO_NTPSHM) {
 		config_set_int(cfg, "kernel_leap", 0);

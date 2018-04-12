@@ -131,4 +131,10 @@ extern int sk_tx_timeout;
  */
 extern int sk_check_fupsync;
 
+/**
+ * Disables the use of high resultion, fractional nanosecond hardware
+ * timestamps, even if provided by the kernel.
+ */
+extern int sk_no_hires;
+
 #endif

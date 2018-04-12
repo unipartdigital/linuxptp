@@ -40,6 +40,7 @@
 
 int sk_tx_timeout = 1;
 int sk_check_fupsync;
+int sk_no_hires;
 
 /* private methods */
 
@@ -370,7 +371,7 @@ int sk_receive(int fd, void *buf, int buflen,
 	case TS_HARDWARE:
 	case TS_ONESTEP:
 	case TS_P2P1STEP:
-		if (hr) {
+		if (hr && !sk_no_hires) {
 			hwts->ts = timehires_to_tmv(hr[0]);
 		} else {
 			hwts->ts = timespec_to_tmv(ts[2]);
