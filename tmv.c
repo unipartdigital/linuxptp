@@ -17,6 +17,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+#include <stdlib.h>
 #include <math.h>
 #include <time.h>
 
@@ -162,3 +164,15 @@ tmv_t timehires_to_tmv(struct timehires ts)
 	return tmv_normalize(ts.tv_nsec,
 			     ts.tv_frac >> (8 * sizeof(ts.tv_frac) - NS_BITS));
 }
+
+char * tmv_print(char *buf, tmv_t a)
+{
+	sprintf(buf, "%s%lld.%.06d",
+		(tmv_sign(a) < 0) ? "-" : "",
+		llabs(a.ns),
+		(15625*abs(a.frac))/1024);
+
+	return buf;
+}
+
+

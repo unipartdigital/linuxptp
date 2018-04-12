@@ -24,6 +24,9 @@
 
 #include "print.h"
 
+int debug_stats = 0;
+FILE *debug_file = NULL;
+
 static int verbose = 0;
 static int print_level = LOG_INFO;
 static int use_syslog = 1;
@@ -87,3 +90,18 @@ void print(int level, char const *format, ...)
 		       buf);
 	}
 }
+
+
+int debug_print(void)
+{
+	struct timespec ts;
+
+	if (debug_file) {
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+		fprintf(debug_file, "%ld.%06ld,", ts.tv_sec, ts.tv_nsec / 1000);
+		return 1;
+	}
+
+	return 0;
+}
+

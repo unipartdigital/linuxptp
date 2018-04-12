@@ -125,10 +125,12 @@ enum {
 #endif
 
 #ifndef HAVE_TIMEHIRES
+#define TIMESTAMP_DEBUG_SIZE   16
 struct timehires {
 	int64_t		tv_nsec;                /* nanoseconds */
 	uint32_t	tv_frac;                /* fractional ns */
 	uint32_t	__res;
+	int32_t		debug[TIMESTAMP_DEBUG_SIZE];	/* !!! HACK !!! */
 };
 #endif
 

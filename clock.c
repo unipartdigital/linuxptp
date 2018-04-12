@@ -522,10 +522,12 @@ static int clock_management_set(struct clock *c, struct port *p,
 	return respond ? 1 : 0;
 }
 
-static void clock_stats_update(struct clock_stats *s,
+static void clock_stats_update(struct clock *c,
 			       double offset, double freq)
 {
 	struct stats_result offset_stats, freq_stats, delay_stats;
+	struct clock_stats *s = &c->stats;
+	struct port *p;
 
 	stats_add_value(s->offset, offset);
 	stats_add_value(s->freq, freq);
@@ -554,6 +556,9 @@ static void clock_stats_update(struct clock_stats *s,
 	stats_reset(s->offset);
 	stats_reset(s->freq);
 	stats_reset(s->delay);
+
+	LIST_FOREACH(p, &c->ports, list)
+		port_print_debug_stats(p);
 }
 
 static enum servo_state clock_no_adjust(struct clock *c, tmv_t ingress,
@@ -592,8 +597,15 @@ static enum servo_state clock_no_adjust(struct clock *c, tmv_t ingress,
 		tmv_dbl(tmv_sub(ingress, f->ingress1));
 	freq = (1.0 - ratio) * 1e9;
 
+	if (debug_print()) {
+		fprintf(debug_file, "RUN,%.3f,%.3f,%.3f\n",
+			freq,
+			tmv_dbl(c->master_offset),
+			tmv_dbl(c->path_delay));
+	}
+
 	if (c->stats.max_count > 1) {
-		clock_stats_update(&c->stats, tmv_dbl(c->master_offset), freq);
+		clock_stats_update(c, tmv_dbl(c->master_offset), freq);
 	} else {
 		pr_info("master offset %10.3f s%d freq %+7.3f path delay %9.3f",
 			tmv_dbl(c->master_offset), state, freq,
@@ -1640,8 +1652,16 @@ enum servo_state clock_synchronize(struct clock *c, tmv_t ingress, tmv_t origin)
 			   tmv_to_nanoseconds(ingress), weight, &state);
 	c->servo_state = state;
 
+	if (debug_print()) {
+		char buf[2][50];
+		fprintf(debug_file, "ADJ,%.3f,%s,%s\n",
+			adj,
+			tmv_print(buf[0], c->master_offset),
+			tmv_print(buf[1], c->path_delay));
+	}
+
 	if (c->stats.max_count > 1) {
-		clock_stats_update(&c->stats, tmv_dbl(c->master_offset), adj);
+		clock_stats_update(c, tmv_dbl(c->master_offset), adj);
 	} else {
 		pr_info("master offset %10.3f s%d freq %+7.3f path delay %9.3f",
 			tmv_dbl(c->master_offset), state, adj,
@@ -1810,3 +1830,4 @@ double clock_rate_ratio(struct clock *c)
 	}
 	return servo_rate_ratio(c->servo);
 }
+

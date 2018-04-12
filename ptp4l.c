@@ -74,6 +74,7 @@ int main(int argc, char *argv[])
 {
 	char *config = NULL, *req_phc = NULL, *progname;
 	enum clock_type type = CLOCK_TYPE_ORDINARY;
+	char *debugfile = NULL;
 	int c, err = -1, index, print_level;
 	struct clock *clock = NULL;
 	struct option *opts;
@@ -91,7 +92,7 @@ int main(int argc, char *argv[])
 	/* Process the command line arguments. */
 	progname = strrchr(argv[0], '/');
 	progname = progname ? 1+progname : argv[0];
-	while (EOF != (c = getopt_long(argc, argv, "AEP246HSLNf:i:p:sl:mqvh",
+	while (EOF != (c = getopt_long(argc, argv, "AEP246HSLND:f:i:p:sl:mqvhd",
 				       opts, &index))) {
 		switch (c) {
 		case 0:
@@ -140,6 +141,13 @@ int main(int argc, char *argv[])
 		case 'N':
 			if (config_set_int(cfg, "disable_hires_timestamps", 1))
 				goto out;
+			break;
+		case 'D':
+			if (config_set_string(cfg, "debugFile", optarg))
+				goto out;
+			break;
+		case 'd':
+			config_set_int(cfg,"debugStats", 1);
 			break;
 		case 'f':
 			config = optarg;
@@ -209,6 +217,11 @@ int main(int argc, char *argv[])
 		goto out;
 	}
 
+	debug_stats = config_get_int(cfg, NULL, "debugStats");
+	debugfile = config_get_string(cfg, NULL, "debugFile");
+	if (debugfile)
+		debug_file = fopen(debugfile, "w");
+
 	type = config_get_int(cfg, NULL, "clock_type");
 	switch (type) {
 	case CLOCK_TYPE_ORDINARY:
@@ -247,6 +260,7 @@ int main(int argc, char *argv[])
 	}
 
 	clock = clock_create(type, cfg, req_phc);
+
 	if (!clock) {
 		fprintf(stderr, "failed to create a clock\n");
 		goto out;
@@ -261,6 +275,8 @@ int main(int argc, char *argv[])
 out:
 	if (clock)
 		clock_destroy(clock);
+	if (debug_file)
+		fclose(debug_file);
 	config_destroy(cfg);
 	return err;
 }

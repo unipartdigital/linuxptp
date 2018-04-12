@@ -68,6 +68,8 @@ struct port {
 	int fault_fd;
 	int phc_index;
 
+	struct stats *debug_stats[TIMESTAMP_DEBUG_SIZE];
+
 	void (*dispatch)(struct port *p, enum fsm_event event, int mdiff);
 	enum fsm_event (*event)(struct port *p, int fd_index);
 

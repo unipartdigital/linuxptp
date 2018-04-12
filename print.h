@@ -21,6 +21,7 @@
 #define HAVE_PRINT_H
 
 #include <syslog.h>
+#include <stdio.h>
 
 #include "util.h"
 
@@ -63,5 +64,10 @@ void print_set_verbose(int value);
 #define pl_notice(i, x...)  PRINT_RL(LOG_NOTICE, i, x)
 #define pl_info(i, x...)    PRINT_RL(LOG_INFO, i, x)
 #define pl_debug(i, x...)   PRINT_RL(LOG_DEBUG, i, x)
+
+/* Debug */
+extern int debug_stats;
+extern FILE *debug_file;
+extern int debug_print(void);
 
 #endif

@@ -327,4 +327,7 @@ void fault_interval(struct port *port, enum fault_type ft,
  */
 void tc_cleanup(void);
 
+/* !!! HACK !!! */
+void port_print_debug_stats(struct port *p);
+
 #endif

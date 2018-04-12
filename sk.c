@@ -308,6 +308,7 @@ int sk_receive(int fd, void *buf, int buflen,
 	struct timespec *sw, *ts = NULL;
 	struct timehires *hr = NULL;
 
+	memset(hwts->debug, 0, sizeof(hwts->debug));
 	memset(control, 0, sizeof(control));
 	memset(&msg, 0, sizeof(msg));
 	if (addr) {
@@ -379,6 +380,8 @@ int sk_receive(int fd, void *buf, int buflen,
 	case TS_ONESTEP:
 	case TS_P2P1STEP:
 		if (hr && !sk_no_hires) {
+			/* !!! HACK !!! */
+			memcpy(hwts->debug, hr[0].debug, sizeof(hwts->debug));
 			hwts->ts = timehires_to_tmv(hr[0]);
 		} else {
 			hwts->ts = timespec_to_tmv(ts[2]);

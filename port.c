@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+#include <sys/time.h>
 #include <sys/queue.h>
 #include <net/if.h>
 
@@ -41,6 +43,7 @@
 #include "tmv.h"
 #include "tsproc.h"
 #include "util.h"
+#include "stats.h"
 
 #define ALLOWED_LOST_RESPONSES 3
 #define ANNOUNCE_SPAN 1
@@ -1091,7 +1094,7 @@ static void port_synchronize(struct port *p,
 			     Integer64 correction1, Integer64 correction2)
 {
 	enum servo_state state;
-	tmv_t t1, t1c, t2, c1, c2;
+	tmv_t t1, t1c, t2, c1, c2, td;
 
 	port_set_sync_rx_tmo(p);
 
@@ -1100,6 +1103,15 @@ static void port_synchronize(struct port *p,
 	c1 = correction_to_tmv(correction1);
 	c2 = correction_to_tmv(correction2);
 	t1c = tmv_add(t1, tmv_add(c1, c2));
+	td = tmv_sub(t2,t1c);
+
+	if (debug_print()) {
+		char buf[3][50];
+		fprintf(debug_file, "T12,%s,%s,%s\n",
+			tmv_print(buf[0],t1c),
+			tmv_print(buf[1],t2),
+			tmv_print(buf[2],td));
+	}
 
 	state = clock_synchronize(p->clock, t2, t1c);
 	switch (state) {
@@ -1578,6 +1590,9 @@ int port_initialize(struct port *p)
 	p->neighborPropDelayThresh = config_get_int(cfg, p->name, "neighborPropDelayThresh");
 	p->min_neighbor_prop_delay = config_get_int(cfg, p->name, "min_neighbor_prop_delay");
 
+	for (i = 0; i < TIMESTAMP_DEBUG_SIZE; i++) {
+		p->debug_stats[i] = stats_create();
+	}
 	for (i = 0; i < N_TIMER_FDS; i++) {
 		fd[i] = -1;
 	}
@@ -1786,7 +1801,7 @@ void process_delay_resp(struct port *p, struct ptp_message *m)
 	struct delay_resp_msg *rsp = &m->delay_resp;
 	struct PortIdentity master;
 	struct ptp_message *req;
-	tmv_t c3, t3, t4, t4c;
+	tmv_t c3, t3, t4, t4c, td;
 
 	master = clock_parent_identity(p->clock);
 
@@ -1812,6 +1827,15 @@ void process_delay_resp(struct port *p, struct ptp_message *m)
 	t3 = req->hwts.ts;
 	t4 = timestamp_to_tmv(m->ts.pdu);
 	t4c = tmv_sub(t4, c3);
+	td = tmv_sub(t4c,t3);
+
+	if (debug_print()) {
+		char buf[3][50];
+		fprintf(debug_file, "T34,%s,%s,%s\n",
+			tmv_print(buf[0],t3),
+			tmv_print(buf[1],t4c),
+			tmv_print(buf[2],td));
+	}
 
 	clock_path_delay(p->clock, t3, t4c);
 
@@ -2181,6 +2205,7 @@ void process_sync(struct port *p, struct ptp_message *m)
 
 void port_close(struct port *p)
 {
+	int i;
 	if (port_is_enabled(p)) {
 		port_disable(p);
 	}
@@ -2194,6 +2219,10 @@ void port_close(struct port *p)
 	if (p->fault_fd >= 0) {
 		close(p->fault_fd);
 	}
+
+	for (i = 0; i < TIMESTAMP_DEBUG_SIZE; i++)
+		stats_destroy(p->debug_stats[i]);
+
 	free(p);
 }
 
@@ -2347,6 +2376,46 @@ static void bc_dispatch(struct port *p, enum fsm_event event, int mdiff)
 	}
 }
 
+void port_print_debug_stats(struct port *p)
+{
+	struct stats_result stats;
+	int i;
+
+	static const char *names[16] = {
+		[0]  = "TIME-HIGH",
+		[1]  = "TIME-LOW",
+		[2]  = "RXPACC",
+		[3]  = "INDEX",
+		[4]  = "NOISE",
+		[5]  = "FP_AMPL1",
+		[6]  = "FP_AMPL2",
+		[7]  = "FP_AMPL3",
+		[8]  = "CIR_PWR",
+		[9]  = "FP_PWR",
+		[10] = "SNR",
+		[11] = "FPR",
+		[12] = "T12",
+		[13] = "T13",
+		[14] = "T14",
+		[15] = "T15",
+	};
+
+	for (i = 2; i < TIMESTAMP_DEBUG_SIZE; i++) {
+		if (debug_stats && !stats_get_result(p->debug_stats[i], &stats)) {
+			if (stats.max_abs > 0)
+				pr_info("[%hu] %+9s: mean=%4.3f rms=%4.3f "
+					"stddev=%3.3f min=%4.3f max=%4.3f",
+					portnum(p),
+					names[i],
+					stats.mean,
+					stats.rms,
+					stats.stddev,
+					stats.min,
+					stats.max);
+		}
+		stats_reset(p->debug_stats[i]);
+	}
+}
 void port_link_status(void *ctx, int linkup, int ts_index)
 {
 	struct port *p = ctx;
@@ -2412,7 +2481,7 @@ static enum fsm_event bc_event(struct port *p, int fd_index)
 {
 	enum fsm_event event = EV_NONE;
 	struct ptp_message *msg;
-	int cnt, fd = p->fda.fd[fd_index], err;
+	int cnt, fd = p->fda.fd[fd_index], err, i;
 
 	switch (fd_index) {
 	case FD_ANNOUNCE_TIMER:
@@ -2489,6 +2558,16 @@ static enum fsm_event bc_event(struct port *p, int fd_index)
 	if (port_ignore(p, msg)) {
 		msg_put(msg);
 		return EV_NONE;
+	}
+	if (msg_sots_valid(msg)) {
+		if (debug_print()) {
+			fprintf(debug_file, "MSG");
+			for (i=0; i<TIMESTAMP_DEBUG_SIZE; i++)
+				fprintf(debug_file, ",%d", msg->hwts.debug[i]);
+			fprintf(debug_file, "\n");
+		}
+		for (i=2; i<TIMESTAMP_DEBUG_SIZE; i++)
+			stats_add_value(p->debug_stats[i], msg->hwts.debug[i]);
 	}
 	if (msg_sots_missing(msg) &&
 	    !(p->timestamping == TS_P2P1STEP && msg_type(msg) == PDELAY_REQ)) {

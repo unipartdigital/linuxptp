@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
+#include "config.h"
 #include "tsproc.h"
 #include "filter.h"
 #include "print.h"
@@ -133,6 +134,17 @@ tmv_t get_raw_delay(struct tsproc *tsp)
 	t41 = tmv_sub(tsp->t4, tsp->t1);
 	delay = tmv_div(tmv_add(t23, t41), 2);
 
+	if (debug_print()) {
+		char buf[5][50];
+		fprintf(debug_file, "DLY,%f,%s,%s,%s,%s,%s\n",
+			tsp->clock_rate_ratio,
+			tmv_print(buf[0], tsp->t1),
+			tmv_print(buf[1], tsp->t2),
+			tmv_print(buf[2], tsp->t3),
+			tmv_print(buf[3], tsp->t4),
+			tmv_print(buf[4], delay));
+        }
+
 	if (tmv_sign(delay) < 0) {
 		pr_debug("negative delay %10.3f", tmv_dbl(delay));
 		pr_debug("delay = (t2 - t3) * rr + (t4 - t1)");
@@ -154,6 +166,13 @@ int tsproc_update_delay(struct tsproc *tsp, tmv_t *delay)
 	raw_delay = get_raw_delay(tsp);
 	tsp->filtered_delay = filter_sample(tsp->delay_filter, raw_delay);
 	tsp->filtered_delay_valid = 1;
+
+	if (debug_print()) {
+		char buf[2][50];
+		fprintf(debug_file, "FIL,%s,%s\n",
+			tmv_print(buf[0], raw_delay),
+			tmv_print(buf[1], tsp->filtered_delay));
+	}
 
 	pr_debug("delay   filtered %10.3f   raw %10.3f",
 		 tmv_dbl(tsp->filtered_delay), tmv_dbl(raw_delay));
@@ -209,6 +228,15 @@ int tsproc_update_offset(struct tsproc *tsp, tmv_t *offset, double *weight)
 
 	/* offset = t2 - t1 - delay */
 	*offset = tmv_sub(tmv_sub(tsp->t2, tsp->t1), delay);
+
+	if (debug_print()) {
+		char buf[4][50];
+		fprintf(debug_file, "OFF,%s,%s,%s,%s\n",
+			tmv_print(buf[0], tsp->t1),
+			tmv_print(buf[1], tsp->t2),
+			tmv_print(buf[2], delay),
+			tmv_print(buf[3], *offset));
+        }
 
 	if (!weight)
 		return 0;

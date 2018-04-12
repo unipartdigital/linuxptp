@@ -198,6 +198,8 @@ struct config_item config_tab[] = {
 	GLOB_ITEM_ENU("clock_servo", CLOCK_SERVO_PI, clock_servo_enu),
 	GLOB_ITEM_ENU("clock_type", CLOCK_TYPE_ORDINARY, clock_type_enu),
 	GLOB_ITEM_ENU("dataset_comparison", DS_CMP_IEEE1588, dataset_comp_enu),
+	GLOB_ITEM_STR("debugFile", NULL),
+	GLOB_ITEM_INT("debugStats", 0, 0, 1),
 	PORT_ITEM_INT("delayAsymmetry", 0, INT_MIN, INT_MAX),
 	PORT_ITEM_ENU("delay_filter", FILTER_MOVING_MEDIAN, delay_filter_enu),
 	PORT_ITEM_INT("delay_filter_length", 10, 1, INT_MAX),
@@ -923,3 +925,4 @@ int config_set_string(struct config *cfg, const char *option,
 	pr_debug("locked item global.%s as '%s'", option, ci->val.s);
 	return 0;
 }
+

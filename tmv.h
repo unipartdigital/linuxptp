@@ -57,5 +57,6 @@ extern struct Timestamp tmv_to_Timestamp(tmv_t x);
 extern tmv_t timespec_to_tmv(struct timespec ts);
 extern tmv_t timestamp_to_tmv(struct timestamp ts);
 extern tmv_t timehires_to_tmv(struct timehires ts);
+extern char * tmv_print(char *buf, tmv_t a);
 
 #endif

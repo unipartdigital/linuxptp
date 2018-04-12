@@ -68,6 +68,7 @@ struct hw_timestamp {
 	enum timestamp_type type;
 	tmv_t ts;
 	tmv_t sw;
+	int32_t debug[TIMESTAMP_DEBUG_SIZE];	/* !!! HACK !!! */
 };
 
 enum controlField {
