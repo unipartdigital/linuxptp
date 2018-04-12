@@ -151,3 +151,9 @@ tmv_t timestamp_to_tmv(struct timestamp ts)
 	t.frac = 0;
 	return t;
 }
+
+tmv_t timehires_to_tmv(struct timehires ts)
+{
+	return tmv_normalize(ts.tv_nsec,
+			     ts.tv_frac >> (8 * sizeof(ts.tv_frac) - NS_BITS));
+}
