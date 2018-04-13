@@ -98,6 +98,11 @@ tmv_t correction_to_tmv(Integer64 c)
 	return tmv_normalize(c / NS_FRAC, c % NS_FRAC);
 }
 
+Integer64 tmv_frac_to_correction(tmv_t x)
+{
+	return x.frac;
+}
+
 double tmv_dbl(tmv_t x)
 {
 	return (double) x.ns + (double) x.frac / NS_FRAC;

@@ -48,6 +48,7 @@ extern int tmv_is_zero(tmv_t x);
 extern tmv_t tmv_sub(tmv_t a, tmv_t b);
 extern tmv_t tmv_zero(void);
 extern tmv_t correction_to_tmv(Integer64 c);
+extern Integer64 tmv_frac_to_correction(tmv_t x);
 extern double tmv_dbl(tmv_t x);
 extern tmv_t dbl_tmv(double x);
 extern int64_t tmv_to_nanoseconds(tmv_t x);
