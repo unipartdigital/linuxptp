@@ -153,6 +153,7 @@ static struct config_enum dataset_comp_enu[] = {
 static struct config_enum delay_filter_enu[] = {
 	{ "moving_average", FILTER_MOVING_AVERAGE },
 	{ "moving_median",  FILTER_MOVING_MEDIAN  },
+	{ "ewma",  FILTER_EWMA  },
 	{ NULL, 0 },
 };
 

@@ -1,6 +1,7 @@
 /**
- * @file filter.c
- * @note Copyright (C) 2013 Miroslav Lichvar <mlichvar@redhat.com>
+ * @file ewma.h
+ * @brief Implements an exponentially weighted moving average.
+ * @note Copyright (C) 2018 Petri Mattila <petri.mattila@unipart.io>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,37 +17,11 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifndef HAVE_EWMA_H
+#define HAVE_EWMA_H
 
-#include "filter_private.h"
-#include "mave.h"
-#include "mmedian.h"
-#include "ewma.h"
+#include "filter.h"
 
-struct filter *filter_create(enum filter_type type, int length)
-{
-	switch (type) {
-	case FILTER_MOVING_AVERAGE:
-		return mave_create(length);
-	case FILTER_MOVING_MEDIAN:
-		return mmedian_create(length);
-	case FILTER_EWMA:
-		return ewma_create(length);
-	default:
-		return NULL;
-	}
-}
+struct filter *ewma_create(int length);
 
-void filter_destroy(struct filter *filter)
-{
-	filter->destroy(filter);
-}
-
-tmv_t filter_sample(struct filter *filter, tmv_t sample)
-{
-	return filter->sample(filter, sample);
-}
-
-void filter_reset(struct filter *filter)
-{
-	filter->reset(filter);
-}
+#endif
