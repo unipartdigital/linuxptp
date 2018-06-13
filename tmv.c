@@ -32,11 +32,11 @@ static tmv_t tmv_normalize(int64_t ns, int32_t frac)
 {
 	tmv_t t;
 
-	while ((frac > NS_FRAC) || (frac > 0 && ns < 0)) {
+	while ((frac >= NS_FRAC) || (frac > 0 && ns < 0)) {
 		frac -= NS_FRAC;
 		ns++;
 	}
-	while ((frac < -NS_FRAC) || (frac < 0 && ns > 0)) {
+	while ((frac <= -NS_FRAC) || (frac < 0 && ns > 0)) {
 		frac += NS_FRAC;
 		ns--;
 	}
